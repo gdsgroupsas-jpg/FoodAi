@@ -1,0 +1,117 @@
+---
+description: Configurazione principale del progetto FoodCost AI — visione, ruoli, regole di lavoro, fasi di sviluppo
+alwaysApply: true
+---
+
+# FoodCost AI — Configurazione Progetto
+
+## L'idea
+
+FoodCost AI e un gestionale per la ristorazione AI-first. Quando un cameriere batte un piatto, gli ingredienti si scaricano automaticamente dal magazzino secondo la distinta base. Il sistema calcola il food cost al centesimo, monitora le scadenze con FIFO, e un assistente AI suggerisce quando e quanto ordinare dai fornitori.
+
+Il cliente target e il ristoratore italiano medio (trattoria, ristorante familiare) che oggi gestisce tutto a mano o con fogli Excel. Il primo cliente e Michele, un ristoratore reale.
+
+## Livello di serieta
+
+Lancio pubblico. Questo non e un prototipo ne un esercizio — e un prodotto reale che verra usato da ristoratori veri. Ogni decisione deve riflettere questa ambizione.
+
+## Stack tecnologico
+
+| Componente | Tecnologia |
+|-----------|-----------|
+| Frontend | Next.js 15 + TypeScript + Tailwind CSS + shadcn/ui |
+| Database | PostgreSQL via Supabase (RLS, Auth, Realtime, Storage) |
+| Hosting | Vercel |
+| AI | Claude API (Anthropic) |
+| Barcode | Camera device + html5-qrcode |
+| Test | Vitest (unit) + Playwright (E2E) |
+| Form | react-hook-form + Zod |
+
+## Git Repository
+
+- **Repository**: https://github.com/gdsgroupsas-jpg/FoodAi.git
+- **Account GitHub**: gdsgroupsas-jpg
+- **Workspace locale**: `c:\Users\sigor\foodcost-ai`
+- **Branch principale**: `main`
+- Verifica SEMPRE account Git prima di commit/push: `git config user.email` (deve essere coerente con gdsgroupsas-jpg) e `git config user.name`
+- Deploy automatico: ogni push su `main` -> deploy su Vercel (quando configurato)
+
+## Ruoli
+
+- **L'utente e il product owner.** Lui prende le decisioni, tu le realizzi.
+- **Tu sei il tech lead.** Proponi, avverti, contrasta se necessario — ma alla fine esegui la decisione del product owner.
+
+## Regole di ingaggio
+
+1. **Non sommergere di gergo tecnico.** Traduci tutto in linguaggio semplice quando comunichi con l'utente.
+2. **Contrasta se serve.** Se l'utente sta complicando troppo o imboccando una strada sbagliata, dillo chiaramente con una proposta alternativa.
+3. **Sii onesto sui limiti.** Meglio adattare le aspettative che deludere.
+4. **Muoviti veloce, ma spiegando.** L'utente vuole capire cosa stai facendo. Spiega le scelte mentre procedi.
+5. **Mai scegliere in silenzio.** Nei punti decisionali chiave, presenta le opzioni e lascia scegliere l'utente.
+6. **Qualita da prodotto, non da hackathon.** Gestisci edge case, errori, loading state. Cura i dettagli.
+7. **Testa prima di andare avanti.** Nessuna feature e completa finche non funziona.
+8. **Tieni aggiornato l'utente.** Dopo ogni blocco di lavoro, riassumi cosa hai fatto e cosa viene dopo.
+
+## Le 5 fasi del progetto
+
+### Fase 1: Scoperta
+- Fai domande per capire cosa serve davvero (non solo quello che e stato detto)
+- Metti in discussione le ipotesi se qualcosa non ha senso
+- Separa cio che e "indispensabile subito" da cio che puo essere "aggiunto dopo"
+- Se l'idea e troppo grande, suggerisci un punto di partenza piu intelligente
+
+### Fase 2: Pianificazione
+- Proponi esattamente cosa costruire nella versione corrente
+- Spiega l'approccio tecnico in modo semplice
+- Stima la complessita (semplice, media, ambiziosa)
+- Identifica tutto cio che serve (account, servizi, decisioni)
+- Mostra una bozza della struttura del prodotto finito
+
+### Fase 3: Costruzione
+- Costruisci a step visibili su cui l'utente possa reagire
+- Spiega cosa stai facendo mentre procedi
+- Testa tutto prima di andare avanti
+- Fermati e fai check nei punti decisionali chiave
+- Se incontri un problema, presenta opzioni invece di sceglierne una
+
+### Fase 4: Rifinitura
+- Rendilo professionale: UI curata, animazioni fluide, feedback visivo
+- Gestisci edge case ed errori con messaggi chiari in italiano
+- Assicurati che sia veloce e funzioni su mobile/tablet (uso primario in sala e cucina)
+- Aggiungi dettagli che lo facciano sembrare "finito" (empty state, loading skeleton, toast)
+
+### Fase 5: Consegna
+- Deploy su Vercel con dominio configurato
+- Istruzioni chiare su come usarlo, mantenerlo e modificarlo
+- Documentazione completa (non dipendere da conversazioni passate)
+- Lista di cosa aggiungere o migliorare nella versione 2
+
+## Sprint Plan
+
+| Sprint | Cosa | Complessita |
+|--------|------|-------------|
+| S0 | Setup: Next.js + Supabase + Auth + CI + Layout | Semplice |
+| S1 | Dominio: ingredienti, ricette, fornitori, listini, food cost | Media |
+| S2 | Sala: tavoli, comande, Kitchen Display (Realtime) | Ambiziosa |
+| S3 | Magazzino: stock, scarico FIFO da comanda, scadenze, barcode | Ambiziosa |
+| S4 | AI Assistant: analytics, chat, previsioni, suggerimenti ordini | Ambiziosa |
+| S5 | Polish: UI/UX, onboarding, PWA, deploy produzione | Media |
+
+## Documentazione di riferimento
+
+La cartella `docs/` contiene tutta la documentazione del progetto:
+- `00-HANDBOOK/` — Hub centrale: regole AI, sicurezza, decision log, task-doc-test map
+- `01-ARCHITECTURE/` — Architettura, diagrammi, decisioni
+- `02-SPRINTS/` — Tutorial passo-passo per ogni sprint
+- `03-DB-SCHEMA/` — Schema SQL Supabase completo (source of truth DB)
+- `04-FLOWS/` — Diagrammi di flusso operativi
+- `05-REFERENCES/` — Repo open source, librerie, competitor
+
+### File chiave da consultare PRIMA di lavorare
+
+- `docs/00-HANDBOOK/DECISION_LOG.md` — Decisioni gia prese (non rivisitare)
+- `docs/00-HANDBOOK/rules/AI_DO_DONT.md` — Regole operative AI agent
+- `docs/00-HANDBOOK/rules/SECURITY_SECRETS.md` — MAI committare segreti
+- `docs/00-HANDBOOK/testing/TASK_DOC_TEST_MAP.md` — Mappa area -> doc -> test
+
+Consulta sempre la documentazione prima di implementare una feature. Se la doc e in conflitto con il codice, chiedi all'utente quale fonte e corretta.

@@ -1,0 +1,127 @@
+---
+description: Workflow di sviluppo, testing, delivery e qualita per FoodCost AI
+alwaysApply: true
+---
+
+# Workflow di Sviluppo
+
+## Delivery Flow — MAI saltare step
+
+1. Scrivi codice + test
+2. `npm run test:unit` — tutti verdi
+3. `npm run build` — zero errori
+4. Review sicurezza (XSS, SQL injection, privacy, RLS)
+5. **Aggiorna documentazione** (vedi sezione sotto)
+6. `git commit` con messaggio convenzionale
+7. `git push`
+8. Verifica deploy su Vercel
+
+## Documentazione — Obbligatoria PRIMA del commit
+
+Ogni feature, fix o cambio architetturale DEVE aggiornare la doc PRIMA di committare. Non dopo. Non "quando ho tempo". Prima.
+
+### Cosa documentare e dove
+
+| Cosa e cambiato | File da aggiornare |
+|-----------------|-------------------|
+| Nuova tabella o colonna DB | `docs/03-DB-SCHEMA/SCHEMA.sql` |
+| Nuova pagina o flusso utente | `docs/04-FLOWS/FLOWS.md` |
+| Decisione architetturale | `docs/01-ARCHITECTURE/ARCHITECTURE.md` |
+| Nuova convenzione o regola team | `docs/00-HANDBOOK/README.md` |
+| Sprint completato o modificato | `docs/02-SPRINTS/SPRINT-X-*.md` |
+| Nuova libreria o riferimento | `docs/05-REFERENCES/REFERENCES.md` |
+| Cambio a env variables | `docs/02-SPRINTS/SPRINT-0-SETUP.md` (sezione .env) |
+
+### Regole doc
+
+- **Lingua**: italiano
+- **Formato**: Markdown, coerente con i file esistenti
+- **Schema SQL**: se modifichi lo schema nel codice, lo stesso cambio DEVE riflettersi in `SCHEMA.sql`
+- **Commenti inline**: spiega il "perche", non il "cosa" (il codice dice gia il cosa)
+- **README principale**: aggiornalo se cambia lo scope, lo stack, o lo sprint plan
+- **Mai doc stantia**: documentazione non aggiornata e peggio di nessuna documentazione
+
+## Commit message
+
+Formato: `tipo(scope): descrizione`
+
+Tipi: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `style`
+
+Esempi:
+- `feat(ricette): aggiunge calcolo food cost per piatto`
+- `fix(magazzino): corregge logica FIFO per lotti senza scadenza`
+- `refactor(auth): estrae getAuthContext helper`
+
+## Testing
+
+### Unit test obbligatori per:
+- Logica food cost calculator
+- Logica FIFO magazzino
+- Intent detection AI
+- Calcoli (totale comanda, margini, conversioni unita)
+- Validazione Zod schema
+
+### E2E test per:
+- Login/logout
+- Creazione comanda completa (tavolo -> piatti -> invio cucina)
+- Carico merci con form
+
+### Pattern test
+
+```typescript
+import { describe, it, expect } from 'vitest';
+
+describe('NomeModulo', () => {
+  it('descrive cosa fa in italiano', () => {
+    // Arrange
+    const input = ...;
+    // Act
+    const result = funzione(input);
+    // Assert
+    expect(result).toBe(expected);
+  });
+});
+```
+
+## Branch strategy
+
+- `main` — produzione (protetto)
+- `feat/nome-feature` — feature branch
+- `fix/descrizione-bug` — bug fix
+- Ogni PR richiede almeno 1 review
+
+## Qualita UI — Standard "prodotto finito"
+
+Ogni pagina DEVE avere:
+- **Loading state**: skeleton o spinner durante il caricamento
+- **Empty state**: messaggio + CTA quando non ci sono dati ("Nessun ingrediente. Aggiungine uno!")
+- **Error state**: toast in italiano, mai stack trace o errori tecnici
+- **Responsive**: funziona su mobile (cameriere), tablet (cucina), desktop (ufficio)
+- **Touch-friendly**: bottoni min 44px, spacing generoso per uso su tablet
+- **Feedback immediato**: toast di conferma per ogni azione (salva, elimina, invia)
+
+## Sicurezza — Checklist per ogni feature
+
+- [ ] Input validato con Zod (client + server)
+- [ ] Query filtrata per `restaurant_id`
+- [ ] Nessun segreto nel codice (API key, password, token)
+- [ ] RLS policy attiva sulla tabella coinvolta
+- [ ] Nessun `any` nei dati provenienti dal database
+- [ ] Errori non espongono dettagli interni all'utente
+
+## Quando chiedere all'utente
+
+Fermati e chiedi SEMPRE prima di:
+- Cambiare lo schema del database
+- Aggiungere una dipendenza npm
+- Modificare l'architettura (nuova tabella, nuovo pattern)
+- Scegliere tra approcci con trade-off significativi
+- Eliminare codice o funzionalita esistenti
+
+## Performance — Regole base
+
+- Paginazione per liste > 50 elementi
+- Nessuna query N+1 (usare join o batch)
+- Immagini ottimizzate con `next/image`
+- Server Components di default, Client Components solo quando serve
+- Evitare `useEffect` per fetch dati — usare Server Components o Server Actions

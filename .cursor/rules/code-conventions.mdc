@@ -1,0 +1,123 @@
+---
+description: Convenzioni codice TypeScript, React, Next.js per FoodCost AI
+globs: "**/*.{ts,tsx}"
+alwaysApply: false
+---
+
+# Convenzioni Codice
+
+## Naming
+
+- **File**: kebab-case (`food-cost-calculator.ts`, `stock-alerts.tsx`)
+- **Componenti React**: PascalCase (`RecipeForm`, `KitchenDisplay`)
+- **Variabili/funzioni**: camelCase (`calcolaFoodCost`, `getStockAlerts`)
+- **Tipi/Interfacce**: PascalCase (`FoodCostResult`, `OrderItem`)
+- **Costanti**: UPPER_SNAKE_CASE (`MAX_BATCH_SIZE`, `DEFAULT_YIELD_FACTOR`)
+- **Tabelle DB**: snake_case (`recipe_ingredients`, `stock_batches`)
+- **Commenti nel codice**: italiano (team e cliente sono italiani)
+
+## Struttura cartelle
+
+```
+app/
+  (auth)/               <- Login, registrazione
+  dashboard/
+    sala/               <- Gestione tavoli, comande
+    cucina/             <- Kitchen Display
+    magazzino/          <- Stock, carico/scarico, scadenze
+    ricette/            <- Gestione ricette e distinte base
+    fornitori/          <- Anagrafica fornitori, listini
+    food-cost/          <- Analytics food cost
+    ai-assistant/       <- Chat AI
+actions/                <- Server Actions (Next.js)
+components/
+  sala/                 <- Componenti sala
+  cucina/               <- Kitchen Display components
+  magazzino/            <- Componenti magazzino
+  ricette/              <- Componenti ricette
+  shared/               <- Componenti condivisi (Button, Input, Dialog...)
+  ai/                   <- Chat AI, suggerimenti
+lib/
+  db/                   <- Client Supabase, auth helpers
+  food-cost/            <- Logica calcolo food cost
+  inventory/            <- Logica magazzino (FIFO, scadenze)
+  ai/                   <- Agent AI, intent detection, worker
+types/                  <- TypeScript types/interfaces
+tests/
+  unit/                 <- Vitest unit tests
+  e2e/                  <- Playwright E2E tests
+```
+
+## Pattern Server Action
+
+Ogni server action DEVE seguire questo pattern:
+
+```typescript
+'use server';
+
+import { getAuthContext } from '@/lib/db/auth-context';
+
+export async function nomeAction(input: InputType) {
+  // 1. Auth + tenant context (MAI saltare)
+  const ctx = await getAuthContext();
+
+  // 2. Validazione input con Zod
+  const parsed = schema.safeParse(input);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.errors[0].message };
+  }
+
+  // 3. Query con filtro restaurant_id (SEMPRE)
+  const { data, error } = await supabase
+    .from('tabella')
+    .select('*')
+    .eq('restaurant_id', ctx.restaurantId);
+
+  // 4. Risposta tipizzata
+  if (error) return { success: false, error: error.message };
+  return { success: true, data };
+}
+```
+
+## Risposta tipizzata
+
+Tutte le server action restituiscono:
+
+```typescript
+type ActionResult<T> = 
+  | { success: true; data: T }
+  | { success: false; error: string };
+```
+
+## Componenti React
+
+- Usare **functional components** (mai classi)
+- Marcare `'use client'` solo quando serve (stato, effetti, eventi browser)
+- Estrarre custom hooks per logica riusabile (`useStock`, `useOrders`)
+- Props con interfaccia esplicita, mai `any`
+- Loading state con skeleton, mai schermo bianco
+- Errori con toast in italiano, mai errori tecnici all'utente
+
+## Validazione
+
+- **Sempre Zod** per input da form o API
+- Schema Zod definiti in `types/` vicino al dominio (`types/ingredients.ts`)
+- Mai fidarsi dell'input client-side — validare anche lato server action
+
+## Import
+
+- Usare alias `@/` per tutti gli import interni
+- Mai import relativi lunghi (`../../../lib/db/client`)
+
+## Errori
+
+```typescript
+// MAI FARE
+try { ... } catch (e) {}
+
+// SEMPRE FARE
+try { ... } catch (e) {
+  console.error('Descrizione contesto:', e);
+  return { success: false, error: 'Messaggio user-friendly in italiano' };
+}
+```

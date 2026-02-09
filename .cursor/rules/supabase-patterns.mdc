@@ -1,0 +1,130 @@
+---
+description: Pattern Supabase, database PostgreSQL, RLS e Realtime per FoodCost AI
+globs: "**/*.{ts,tsx,sql}"
+alwaysApply: false
+---
+
+# Supabase & Database Patterns
+
+## Client Supabase
+
+Esistono due client. Usarli nel modo corretto:
+
+```typescript
+// CLIENT BROWSER (con RLS) — per componenti client e letture
+import { createBrowserClient } from '@supabase/ssr';
+
+// CLIENT SERVER (con RLS) — per server action e letture sicure
+import { createServerClient } from '@supabase/ssr';
+
+// CLIENT ADMIN (bypassa RLS) — SOLO per onboarding, operazioni cross-tenant, cron
+import { supabaseAdmin } from '@/lib/db/client';
+```
+
+**Regola:** preferire SEMPRE il client con RLS. Usare admin solo quando strettamente necessario.
+
+## Multi-tenant: filtro restaurant_id
+
+OGNI query DEVE filtrare per `restaurant_id`. Nessuna eccezione.
+
+```typescript
+// CORRETTO
+.from('ingredients')
+.select('*')
+.eq('restaurant_id', ctx.restaurantId)
+
+// SBAGLIATO — espone dati di altri ristoranti
+.from('ingredients')
+.select('*')
+```
+
+## Auth Context Helper
+
+Usare `getAuthContext()` in ogni server action invece di ripetere il boilerplate:
+
+```typescript
+// lib/db/auth-context.ts
+export async function getAuthContext() {
+  const user = await getCurrentUser();
+  if (!user) throw new AuthError('Non autenticato');
+
+  const { data } = await supabaseAdmin
+    .from('users')
+    .select('id, restaurant_id, role')
+    .eq('auth_user_id', user.id)
+    .single();
+
+  if (!data) throw new AuthError('Utente non trovato');
+  return { userId: data.id, restaurantId: data.restaurant_id, role: data.role };
+}
+```
+
+## Stati nel database
+
+Tutti gli stati sono in INGLESE nel database (coerenza):
+
+| Tabella | Stati |
+|---------|-------|
+| tables.status | `free`, `occupied`, `reserved`, `bill_requested` |
+| orders.status | `open`, `preparing`, `served`, `closed`, `cancelled` |
+| order_items.status | `pending`, `sent`, `preparing`, `ready`, `served`, `cancelled` |
+| purchase_orders.status | `draft`, `sent`, `confirmed`, `received`, `cancelled` |
+| stock_movements.movement_type | `load`, `unload_order`, `unload_manual`, `adjustment`, `transfer` |
+
+La UI traduce in italiano per l'utente. Il DB resta in inglese.
+
+## UUID
+
+Usare `gen_random_uuid()` (built-in PostgreSQL 13+), MAI `uuid_generate_v4()`.
+
+## Soft delete
+
+Non cancellare mai righe. Usare `is_active = false` e filtrare `.eq('is_active', true)`.
+
+## Realtime
+
+Per le sottoscrizioni Realtime, filtrare SEMPRE per `restaurant_id`:
+
+```typescript
+supabase
+  .channel('kitchen-orders')
+  .on('postgres_changes', {
+    event: 'INSERT',
+    schema: 'public',
+    table: 'order_items',
+    filter: `restaurant_id=eq.${restaurantId}`
+  }, callback)
+```
+
+## Transazioni atomiche
+
+Per operazioni multi-tabella (es. scarico magazzino), usare stored procedure PostgreSQL:
+
+```sql
+CREATE OR REPLACE FUNCTION do_something_atomic(...)
+RETURNS ... AS $$
+BEGIN
+  -- Tutto in una transazione
+  UPDATE ...;
+  INSERT ...;
+  -- Se qualcosa fallisce, PostgreSQL fa rollback automatico
+END;
+$$ LANGUAGE plpgsql;
+```
+
+Chiamare da TypeScript con `supabase.rpc('do_something_atomic', { ... })`.
+
+## Conversione unita
+
+Le ricette possono usare unita diverse dallo stock (ricetta in `g`, stock in `kg`). Convertire SEMPRE:
+
+```typescript
+const conversionFactors: Record<string, Record<string, number>> = {
+  kg: { g: 1000, kg: 1 },
+  g: { kg: 0.001, g: 1 },
+  l: { ml: 1000, l: 1 },
+  ml: { l: 0.001, ml: 1 },
+  pz: { pz: 1 },
+  conf: { conf: 1 },
+};
+```
